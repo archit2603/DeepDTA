@@ -2,7 +2,7 @@ from __future__ import print_function
 #import matplotlib
 #matplotlib.use('Agg')
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import random as rn
 
 ### We modified Pahikkala et al. (2014) source code for cross-val process ###
@@ -15,7 +15,7 @@ rn.seed(1)
 
 session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
 import keras
-from keras import backend as K
+from tensorflow.compat.v1.keras import backend as K
 tf.set_random_seed(0)
 sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
 K.set_session(sess)
@@ -30,7 +30,7 @@ import keras
 from keras.models import Model
 from keras.preprocessing import sequence
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Activation, Merge
+from keras.layers import Dense, Dropout, Activation, Concatenate
 from keras.layers import Embedding
 from keras.layers import Conv1D, GlobalMaxPooling1D, MaxPooling1D
 from keras.layers.normalization import BatchNormalization
@@ -162,7 +162,8 @@ def build_single_drug(FLAGS, NUM_FILTERS, FILTER_LENGTH1, FILTER_LENGTH2):
     encode_smiles.add(GlobalMaxPooling1D())
 
 
-    interactionModel.add(Merge([encode_smiles, XTmodel], mode='concat', concat_axis=1))
+    #interactionModel.add(Merge([encode_smiles, XTmodel], mode='concat', concat_axis=1))
+    interactionModel.add(Concatenate([encode_smiles, XTmodel], axis=1))
     #interactionModel.add(layers.merge.Concatenate([XDmodel, XTmodel]))
 
     # Fully connected 
@@ -197,7 +198,8 @@ def build_single_prot(FLAGS, NUM_FILTERS, FILTER_LENGTH1, FILTER_LENGTH2):
     XTmodel1.add(GlobalMaxPooling1D())
 
 
-    interactionModel.add(Merge([XDmodel, XTmodel1], mode='concat', concat_axis=1))
+    #interactionModel.add(Merge([XDmodel, XTmodel1], mode='concat', concat_axis=1))
+    interactionModel.add(Concatenate([XDmodel, XTmodel1], axis=1))
 
     # Fully connected 
     interactionModel.add(Dense(1024, activation='relu'))
@@ -224,7 +226,8 @@ def build_baseline(FLAGS, NUM_FILTERS, FILTER_LENGTH1, FILTER_LENGTH2):
     XTmodel.add(Dense(1, activation='linear', input_shape=(FLAGS.target_count,)))
 
 
-    interactionModel.add(Merge([XDmodel, XTmodel], mode='concat', concat_axis=1))
+    #interactionModel.add(Merge([XDmodel, XTmodel], mode='concat', concat_axis=1))
+    interactionModel.add(Concatenate([XDmodel, XTmodel], axis=1))
 
     # Fully connected 
     interactionModel.add(Dense(1024, activation='relu'))
@@ -308,9 +311,11 @@ def general_nfold_cv(tr_XD, tr_XT,  tr_Y, te_XD, te_XT, te_Y,  prfmeasure, runme
 
     valinds = val_sets
     labeledinds = labeled_sets
+    print("labeledinds",np.array(labeledinds).shape)
 
     tr_label_row_inds, tr_label_col_inds = np.where(np.isnan(tr_Y)==False)  #basically finds the point address of affinity [x,y]
     te_label_row_inds, te_label_col_inds = np.where(np.isnan(te_Y)==False)  #basically finds the point address of affinity [x,y]
+    print("ass",np.array(tr_label_row_inds).shape)
 
     Y_train = np.mat(np.copy(tr_Y))
 
